@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "layer": [{"mark": {"type": "arc", "innerRadius": 20, "stroke": "#fff"}, "encoding": {"color": {"field": "category_title", "title": "Category", "type": "nominal"}, "radius": {"field": "event_count", "scale": {"rangeMin": 20, "type": "sqrt", "zero": true}, "type": "quantitative"}, "theta": {"field": "event_count", "stack": true, "type": "quantitative"}}}, {"mark": {"type": "text", "radiusOffset": 10}, "encoding": {"color": {"field": "category_title", "title": "Category", "type": "nominal"}, "radius": {"field": "event_count", "scale": {"rangeMin": 20, "type": "sqrt", "zero": true}, "type": "quantitative"}, "text": {"field": "category_title", "type": "nominal"}, "theta": {"field": "event_count", "stack": true, "type": "quantitative"}}}], "data": {"name": "data-97c327c11670f480ee89dc0d0f1eb20a"}, "height": 400, "title": "NASA Natural Events by Category)", "width": 400, "$schema": "https://vega.github.io/schema/vega-lite/v6.1.0.json", "datasets": {"data-97c327c11670f480ee89dc0d0f1eb20a": [{"category_title": "Wildfires", "event_count": 4114}, {"category_title": "Sea and Lake Ice", "event_count": 192}, {"category_title": "Volcanoes", "event_count": 7}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>
