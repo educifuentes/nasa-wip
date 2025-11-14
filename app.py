@@ -256,6 +256,17 @@ def main():
         except Exception:
             df_filtered = df.copy()
 
+    # Region (continent) selection - default Global (no filter)
+    available_continents = []
+    if not df.empty and 'continent' in df.columns:
+        available_continents = sorted([c for c in df['continent'].dropna().unique()])
+    region_options = ["Global"] + available_continents
+    selected_region = st.selectbox("Select region (continent)", region_options, index=0)
+
+    # Apply region filter if not Global
+    if selected_region != "Global":
+        df_filtered = df_filtered[df_filtered['continent'] == selected_region].copy()
+
     # Derive category counts from filtered data (prefer live API data)
     df_categories = None
     if not df_filtered.empty and 'category_titles' in df_filtered.columns:

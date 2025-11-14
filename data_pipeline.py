@@ -9,6 +9,12 @@ from datetime import datetime, timedelta
 import json
 import os
 from pathlib import Path
+import reverse_geocoder as rg
+import pycountry
+try:
+    import pycountry_convert as pc
+except Exception:
+    pc = None
 
 
 def extract_events(start_date: str, end_date: str) -> dict:
@@ -144,6 +150,145 @@ def save_data(df: pd.DataFrame, output_path: str):
     print(f"Data saved to {output_path}")
 
 
+def enrich_with_reverse_geocoding(df: pd.DataFrame) -> pd.DataFrame:
+    """Add `region` and `country` columns to dataframe using reverse_geocoder.
+
+    This function will attempt to reverse-geocode unique (lat, lon) pairs to
+    reduce repeated lookups. If reverse_geocoder is not available or no valid
+    coordinates exist, the function will add the columns with None values.
+    """
+    if df is None or df.empty:
+        return df
+
+    # Prepare new columns
+    df['region'] = None
+    df['country'] = None
+    df['continent'] = None
+
+    # Ensure latitude/longitude columns exist
+    if 'latitude' not in df.columns or 'longitude' not in df.columns:
+        print("Latitude/longitude columns not found; skipping reverse geocoding")
+        return df
+
+    # Filter rows with valid coordinates
+    coord_mask = df['latitude'].notna() & df['longitude'].notna()
+    if not coord_mask.any():
+        print("No valid coordinates found; skipping reverse geocoding")
+        return df
+
+    # Build list of unique rounded coordinate tuples to reduce API calls
+    coords_df = (
+        df.loc[coord_mask, ['latitude', 'longitude']]
+        .drop_duplicates()
+    )
+
+    # Round coordinates to 4 decimal places to group nearby points
+    coords = [ (round(float(r.latitude), 4), round(float(r.longitude), 4)) for r in coords_df.itertuples() ]
+
+    try:
+        results = rg.search(coords)  # returns list of dicts with keys like 'admin1', 'cc'
+    except Exception as e:
+        print(f"Reverse geocoding failed: {e}. Skipping geocoding step.")
+        return df
+
+    # Map rounded coord -> geocode result
+    coord_to_result = { coords[i]: results[i] for i in range(len(coords)) }
+
+    # Helper to lookup country name from country code
+    def country_name_from_cc(cc):
+        try:
+            country = pycountry.countries.get(alpha_2=cc.upper())
+            return country.name if country is not None else cc
+        except Exception:
+            return cc
+
+    def continent_from_latlon(lat, lon):
+        """Heuristic continent lookup based only on latitude and longitude.
+
+        This uses simple bounding-box rules and is intentionally lightweight.
+        It is not perfect (border cases and islands may be misclassified),
+        but works well for bulk assignments without external dependencies.
+        """
+        try:
+            if pd.isna(lat) or pd.isna(lon):
+                return None
+            lat = float(lat)
+            lon = float(lon)
+        except Exception:
+            return None
+
+        # Normalize longitude to [-180, 180]
+        if lon > 180:
+            lon = ((lon + 180) % 360) - 180
+        if lon < -180:
+            lon = ((lon + 180) % 360) - 180
+
+        # Antarctica
+        if lat <= -60:
+            return 'Antarctica'
+
+        # Oceania / Australia / Pacific islands
+        if (lon >= 110 and lon <= 180) and (lat >= -50 and lat <= 10):
+            return 'Oceania'
+        # Also include some Pacific longitudes that wrap negative
+        if (lon >= -180 and lon <= -140) and (lat >= -50 and lat <= 10):
+            return 'Oceania'
+
+        # South America
+        if lon >= -82 and lon <= -34 and lat >= -56 and lat <= 13:
+            return 'South America'
+
+        # North America (including Central America/Caribbean if lat > -15)
+        if lon >= -170 and lon <= -50 and lat >= -15 and lat <= 83:
+            return 'North America'
+
+        # Africa
+        if lon >= -20 and lon <= 60 and lat >= -35 and lat <= 38:
+            return 'Africa'
+
+        # Europe
+        if lon >= -25 and lon <= 45 and lat >= 36 and lat <= 72:
+            return 'Europe'
+
+        # Asia (fallback for large eastern longitudes)
+        if lon > 45 or lon < -25:
+            return 'Asia'
+
+        # As a final fallback
+        return None
+
+    # Apply mapping back to dataframe rows (using rounded keys)
+    def lookup_region_country(lat, lon):
+        if pd.isna(lat) or pd.isna(lon):
+            return (None, None)
+        key = (round(float(lat), 4), round(float(lon), 4))
+        res = coord_to_result.get(key)
+        if not res:
+            return (None, None)
+        region = res.get('admin1') or res.get('admin2') or None
+        cc = res.get('cc')
+        country = country_name_from_cc(cc) if cc else None
+        return (region, country)
+
+    # Vectorized application
+    regions = []
+    countries = []
+    continents = []
+    for lat, lon in zip(df['latitude'], df['longitude']):
+        r, c = lookup_region_country(lat, lon)
+        regions.append(r)
+        countries.append(c)
+        # Infer continent solely from lat/lon
+        continents.append(continent_from_latlon(lat, lon))
+
+    df['region'] = regions
+    df['country'] = countries
+    df['continent'] = continents
+
+    print(f"Reverse geocoding added 'region' and 'country' for {coord_mask.sum()} rows")
+    return df
+
+
 def main(start_date: str = None, end_date: str = None):
     """
     Main function to run the data pipeline.
@@ -183,6 +328,12 @@ def main(start_date: str = None, end_date: str = None):
         )
         df = combined_df
     
+    # Enrich with reverse geocoding (region & country) before saving
+    try:
+        df = enrich_with_reverse_geocoding(df)
+    except Exception as e:
+        print(f"Warning: enrich_with_reverse_geocoding failed: {e} (continuing without region/country)")
+
     save_data(df, output_path)
     
     # Also save raw API response for reference
