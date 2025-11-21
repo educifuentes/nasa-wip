@@ -1,3 +1,13 @@
+Data Prompt modealtion
+
+
+I need to refine the data modelation.
+
+Take this into account:
+
+- Each record describes a single natural event, and inside it there is a list of occurrences of that event (called geometries).
+- NASA calls the event the overall phenomenon (e.g., a wildfire), and each geometry is one observation of that event at a specific time.
+
 
 
 
