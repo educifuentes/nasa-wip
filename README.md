@@ -1,25 +1,55 @@
 # 🌍 NASA EONET Data Pipeline Project
 
-A data pipeline that extracts, transforms, and loads natural events data from the NASA EONET API, enabling analysis using Python (pandas) and DuckDB.
+A data pipeline and Streamlit dashboard that extracts, transforms, and loads natural events data from the NASA EONET API, enabling analysis and visualization of natural events worldwide.
 
 ## Project Structure
 
 ```
-nasa-events-new/
+nasa-natural-events/
+├── streamlit_app.py         # Main Streamlit app (entry point for Streamlit Cloud)
+├── app.py                  # Alternative entry point
+├── requirements.txt        # Python dependencies (for Streamlit Cloud)
+├── pyproject.toml          # Project metadata (for uv)
+├── .streamlit/
+│   └── config.toml         # Streamlit configuration
+├── src/
+│   ├── __init__.py
+│   ├── data_pipeline.py    # Data extraction and transformation
+│   └── charts.py          # Chart creation functions
 ├── data/
-│   ├── processed/          # Processed CSV files
-│   └── raw/                 # Raw API responses (JSON)
-├── graphs/                  # Generated visualizations
-├── notebooks/
-│   └── exploratory_analysis.ipynb  # DuckDB analysis notebook
-├── data_pipeline.py         # Main data extraction and transformation script
-├── visualizations.py        # Visualization generation script
-├── run_daily.py             # Daily automation script
-├── requirements.txt         # Python dependencies
-└── README.md               # This file
+│   ├── processed/         # Processed CSV files
+│   └── raw/               # Raw API responses (JSON)
+├── graphs/                # Generated visualizations
+├── notebooks/             # Jupyter notebooks for analysis
+└── README.md             # This file
 ```
 
 ## Setup
+
+### Using uv (Recommended)
+
+1. **Install uv** (if not already installed):
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   # Or on Windows: powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   uv sync
+   ```
+
+3. **Activate the virtual environment:**
+   ```bash
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+4. **Create necessary directories:**
+   ```bash
+   mkdir -p data/processed data/raw graphs notebooks
+   ```
+
+### Using pip (Alternative)
 
 1. **Install dependencies:**
    ```bash
@@ -39,10 +69,10 @@ Extract and transform data from NASA EONET API:
 
 ```bash
 # Extract data for a specific date range
-python data_pipeline.py --start-date 2024-01-01 --end-date 2024-12-31
+python -m src.data_pipeline --start-date 2024-01-01 --end-date 2024-12-31
 
 # Extract data for yesterday to today (default for daily automation)
-python data_pipeline.py
+python -m src.data_pipeline
 ```
 
 The script will:
@@ -136,11 +166,37 @@ The processed CSV contains the following columns:
 - `month`: Extracted month
 - `day`: Extracted day
 
+## Streamlit App
+
+### Running Locally
+
+```bash
+# Using uv
+uv run streamlit run streamlit_app.py
+
+# Using pip
+streamlit run streamlit_app.py
+```
+
+The app will be available at `http://localhost:8501`
+
+### Deployment to Streamlit Cloud
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+
+Quick steps:
+1. Push your code to GitHub
+2. Go to [share.streamlit.io](https://share.streamlit.io)
+3. Connect your repository
+4. Set main file to `streamlit_app.py`
+5. Deploy!
+
 ## Notes
 
 - The pipeline handles duplicate events by keeping the most recent occurrence
 - Geographic analysis uses coordinate-based regions (reverse geocoding can be added for country-level analysis)
 - The visualization script requires valid geographic coordinates for the map visualization
+- The Streamlit app fetches data directly from the NASA EONET API (no local data files required)
 
 ## License
 

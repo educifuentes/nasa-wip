@@ -1,0 +1,29 @@
+[project]
+name = "nasa-natural-events"
+version = "0.1.0"
+description = "A data pipeline that extracts, transforms, and loads natural events data from the NASA EONET API"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+
+dependencies = [
+    "requests>=2.31.0",
+    "pandas>=2.0.0",
+    "duckdb>=0.9.0",
+    "altair>=5.0.0",
+    "vega-datasets>=0.9.0",
+    "jupyter>=1.0.0",
+    "notebook>=6.5.0",
+    "streamlit>=1.28.0",
+    "reverse-geocoder>=1.5.0",
+    "pycountry>=22.3.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+

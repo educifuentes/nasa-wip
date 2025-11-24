@@ -11,8 +11,8 @@ import pandas as pd
 import altair as alt
 from pathlib import Path
 from datetime import datetime, timedelta
-from data_pipeline import extract_events, transform_events
-from charts import (
+from src.data_pipeline import extract_events, transform_events
+from src.charts import (
     create_daily_chart,
     create_big_number_chart,
     create_radial_chart,
